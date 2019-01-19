@@ -1,11 +1,15 @@
-package com.nikhil.locationalarm.helper;
+package com.nikhil.locationalarm.utils;
 
+import com.nikhil.locationalarm.model.LocationModel;
 import com.nikhil.locationalarm.model.UserInfo;
+
+import java.util.List;
 
 public class AppCache {
 
     private static AppCache mCache = new AppCache();
     private UserInfo mUserInfo;
+    private List<LocationModel> mOfflineLocation;
 
     private AppCache() {
 
@@ -16,7 +20,7 @@ public class AppCache {
     }
 
     public void setUserInfo(UserInfo userInfo) {
-        this.mUserInfo = mUserInfo;
+        this.mUserInfo = userInfo;
     }
 
     public UserInfo getUserInfo() {

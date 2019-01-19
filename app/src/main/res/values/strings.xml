@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">LocationAlarm</string>
+    <string name="app_name">Location Alarm</string>
     <!-- Strings related to login -->
     <string name="prompt_username">Username</string>
     <string name="prompt_password">Password (optional)</string>

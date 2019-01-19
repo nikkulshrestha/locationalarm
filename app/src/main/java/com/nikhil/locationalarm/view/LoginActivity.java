@@ -1,9 +1,9 @@
 package com.nikhil.locationalarm.view;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -15,15 +15,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
 import com.nikhil.locationalarm.R;
-import com.nikhil.locationalarm.helper.AppCache;
+import com.nikhil.locationalarm.utils.AppCache;
 import com.nikhil.locationalarm.model.LoginRequestModel;
 import com.nikhil.locationalarm.model.LoginResponseModel;
 import com.nikhil.locationalarm.model.NetworkModel;
-import com.nikhil.locationalarm.model.RawDataModel;
 import com.nikhil.locationalarm.network.NetworkRequest;
 import com.nikhil.locationalarm.utils.Constants;
 
@@ -106,27 +104,32 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void requestForLogin(String username, String password) {
-        NetworkRequest request = new NetworkRequest(Request.Method.POST, Constants.BASE_URL +
-                Constants.ENDPOINT_LOGIN, new Response.Listener<NetworkModel>() {
-                    @Override
-                    public void onResponse(NetworkModel response) {
-                        if (response instanceof LoginResponseModel) {
-                            showProgress(false);
-                            LoginResponseModel loginResponseModel = (LoginResponseModel) response;
-                            AppCache.getCache().setUserInfo(loginResponseModel.getResult());
-                            Toast.makeText(LoginActivity.this, loginResponseModel.getStatus().getCode()
-                                    + " : " + loginResponseModel.getResult().getName(), Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                showProgress(false);
-                Toast.makeText(LoginActivity.this, "Login error: " + error.getMessage(),
-                        Toast.LENGTH_SHORT).show();
-            }
-        }, new LoginResponseModel(), null, new LoginRequestModel(username, password).toString());
+        NetworkRequest request = new NetworkRequest(Request.Method.POST,
+                Constants.BASE_URL + Constants.ENDPOINT_LOGIN,
+                this::onLoginResponse,
+                this::onLoginError,
+                new LoginResponseModel(),
+                null,
+                new LoginRequestModel(username, password).toString());
+
         Volley.newRequestQueue(this).add(request);
+    }
+
+    private void onLoginResponse(NetworkModel response) {
+        if (response instanceof LoginResponseModel) {
+            showProgress(false);
+            LoginResponseModel loginResponseModel = (LoginResponseModel) response;
+            AppCache.getCache().setUserInfo(loginResponseModel.getResult());
+            startActivity(new Intent(LoginActivity.this, AlarmListActivity.class));
+            Toast.makeText(LoginActivity.this, loginResponseModel.getStatus().getCode()
+                    + " : " + loginResponseModel.getResult().getName(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void onLoginError(VolleyError error) {
+        showProgress(false);
+        Toast.makeText(LoginActivity.this, "Login error: " + error.getMessage(),
+                Toast.LENGTH_SHORT).show();
     }
 
     /**

@@ -20,7 +20,6 @@ public class NetworkRequest extends Request<NetworkModel> {
 
     public static final String TAG = NetworkRequest.class.getSimpleName();
     private final Response.Listener<NetworkModel> mResponseListener;
-    private final int methodType;
     private Map<String, String> mHeaders;
     private NetworkModel mDataModel;
     private final Gson mGson;
@@ -36,7 +35,6 @@ public class NetworkRequest extends Request<NetworkModel> {
         super(method, url, listener);
         this.mResponseListener = responseListener;
         this.mDataModel = model;
-        this.methodType = method;
         this.mHeaders = headers;
         this.mRequestBody = requestBody;
         mGson = new Gson();
@@ -90,13 +88,13 @@ public class NetworkRequest extends Request<NetworkModel> {
 
     private NetworkModel getNormalDataModel(NetworkResponse response, String jsonString) {
         if (mDataModel instanceof RawDataModel) {
-            return getCJRRawDataModel(response, jsonString);
+            return getRawDataModel(response, jsonString);
         }
 
         return mGson.fromJson(jsonString, mDataModel.getClass());
     }
 
-    private NetworkModel getCJRRawDataModel(NetworkResponse response, String content) {
+    private NetworkModel getRawDataModel(NetworkResponse response, String content) {
         RawDataModel model = (RawDataModel) this.mDataModel;
         model.setRawContent(content);
         model.setHeaders(response.headers);

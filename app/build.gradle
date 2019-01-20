@@ -14,7 +14,7 @@ android {
         debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField "int", "LOCATION_UPDATE_INTERVAL", "50"
+            buildConfigField "int", "LOCATION_UPDATE_INTERVAL", "1"
 
         }
         release {

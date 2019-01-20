@@ -1,10 +1,9 @@
-package com.nikhil.locationalarm.utils;
+package com.nikhil.locationalarm.service;
 
 import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -31,7 +30,7 @@ import com.nikhil.locationalarm.BuildConfig;
 import com.nikhil.locationalarm.R;
 import com.nikhil.locationalarm.model.LocationModel;
 import com.nikhil.locationalarm.network.SyncLocationHelper;
-import com.nikhil.locationalarm.view.AlarmListActivity;
+import com.nikhil.locationalarm.utils.AppCache;
 
 public class AppLocationService extends Service implements GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener, LocationListener {

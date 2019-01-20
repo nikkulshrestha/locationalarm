@@ -1,4 +1,4 @@
-package com.nikhil.locationalarm.utils;
+package com.nikhil.locationalarm.helper;
 
 public interface ILocationPermissionSuccessListener {
     void onLocationPermissionSuccess();

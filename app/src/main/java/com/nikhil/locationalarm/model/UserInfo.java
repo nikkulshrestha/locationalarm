@@ -12,6 +12,7 @@ public class UserInfo {
     private String name;
     private String role;
     private String token;
+    private String mobile;
     private boolean firstTimeLogin;
 
     public long getUserId() {
@@ -52,5 +53,13 @@ public class UserInfo {
 
     public void setFirstTimeLogin(boolean firstTimeLogin) {
         this.firstTimeLogin = firstTimeLogin;
+    }
+
+    public String getMobile() {
+        return mobile;
+    }
+
+    public void setMobile(String mobile) {
+        this.mobile = mobile;
     }
 }

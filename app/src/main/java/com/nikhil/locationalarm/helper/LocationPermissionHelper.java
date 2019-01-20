@@ -1,4 +1,4 @@
-package com.nikhil.locationalarm.utils;
+package com.nikhil.locationalarm.helper;
 
 import android.Manifest;
 import android.app.Activity;

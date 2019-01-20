@@ -1,97 +1,128 @@
 package com.nikhil.locationalarm.view;
 
-import android.app.ActivityManager;
-import android.content.Context;
 import android.content.Intent;
-import android.location.Location;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.widget.Toast;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.widget.Button;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.location.LocationListener;
 import com.nikhil.locationalarm.R;
-import com.nikhil.locationalarm.utils.ILocationPermissionSuccessListener;
-import com.nikhil.locationalarm.utils.LocationPermissionHelper;
-import com.nikhil.locationalarm.utils.AppLocationService;
+import com.nikhil.locationalarm.helper.AlarmListAdapter;
+import com.nikhil.locationalarm.helper.ILocationPermissionSuccessListener;
+import com.nikhil.locationalarm.helper.LocationHelper;
+import com.nikhil.locationalarm.helper.SharedPreferenceManager;
+import com.nikhil.locationalarm.model.AlarmItem;
+import com.nikhil.locationalarm.model.LocationModel;
+import com.nikhil.locationalarm.utils.Constants;
 
-public class AlarmListActivity extends AppCompatActivity implements ILocationPermissionSuccessListener, LocationListener {
+import java.util.ArrayList;
+import java.util.List;
 
-    private LocationPermissionHelper mLocationPermissionHelper;
-    private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
+public class AlarmListActivity extends AppCompatActivity implements ILocationPermissionSuccessListener, AlarmListAdapter.IAlarmStateChangeListener {
+
     public static final String TAG = AlarmListActivity.class.getSimpleName();
+    private static final int REQUEST_CODE_ADD_ALARM = 1002;
+    private LocationHelper mLocationHelper;
+    private RecyclerView mAlarmListView;
+    private LinearLayoutManager mAlarmListLayoutManager;
+    private AlarmListAdapter mAlarmListAdapter;
+    private ArrayList<AlarmItem> mAlarmItems;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alarm_list);
 
-        mLocationPermissionHelper = new LocationPermissionHelper();
-        mLocationPermissionHelper.checkForPermissions(this);
-        startLocationService();
+        mLocationHelper = new LocationHelper();
+        mLocationHelper.init(this);
+
+        initialiseAlarmList();
+        initialiseAddNewAlarmButton();
+        initialiseShowHistoryButton();
+    }
+
+    private void initialiseShowHistoryButton() {
+        Button showLocationHistoryButton = findViewById(R.id.btnShowLocationHistory);
+        showLocationHistoryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(AlarmListActivity.this, LocationHistoryActivity.class));
+            }
+        });
+    }
+
+    private void initialiseAlarmList() {
+        mAlarmListView = findViewById(R.id.alarmList);
+
+
+        mAlarmListView.setHasFixedSize(true);
+
+        mAlarmListLayoutManager = new LinearLayoutManager(this);
+        mAlarmListView.setLayoutManager(mAlarmListLayoutManager);
+
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(mAlarmListView.getContext(),
+                mAlarmListLayoutManager.getOrientation());
+        mAlarmListView.addItemDecoration(dividerItemDecoration);
+
+        mAlarmItems = SharedPreferenceManager.getAlarmList(this);
+
+        mAlarmListAdapter = new AlarmListAdapter(mAlarmItems, this);
+        mAlarmListView.setAdapter(mAlarmListAdapter);
+    }
+
+    private void initialiseAddNewAlarmButton() {
+        Button addNewAlarmButton = findViewById(R.id.btnAddNewAlarm);
+        addNewAlarmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(new Intent(AlarmListActivity.this,
+                        AddNewAlarmActivity.class), REQUEST_CODE_ADD_ALARM);
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_ADD_ALARM && resultCode == RESULT_OK && data != null
+                && data.hasExtra(Constants.INTENT_KEY_ALARM_NAME)
+                && data.hasExtra(Constants.INTENT_KEY_LATITUDE)
+                && data.hasExtra(Constants.INTENT_KEY_LONGITUDE)) {
+
+            String alarmName = data.getStringExtra(Constants.INTENT_KEY_ALARM_NAME);
+            double latitude = data.getDoubleExtra(Constants.INTENT_KEY_LATITUDE, 0);
+            double longitude = data.getDoubleExtra(Constants.INTENT_KEY_LONGITUDE, 0);
+            mAlarmItems.add(new AlarmItem(alarmName, true, new LocationModel(latitude,
+                    longitude)));
+            SharedPreferenceManager.saveAlarmListIntoPreference(this, mAlarmItems);
+            mAlarmListAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        mLocationPermissionHelper.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        mLocationHelper.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        checkPlayServices();
-    }
-
-
-    private void checkPlayServices() {
-        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        int resultCode = apiAvailability.isGooglePlayServicesAvailable(this);
-
-        if (resultCode != ConnectionResult.SUCCESS) {
-            if (apiAvailability.isUserResolvableError(resultCode)) {
-                apiAvailability.getErrorDialog(this, resultCode, PLAY_SERVICES_RESOLUTION_REQUEST);
-            } else {
-                Toast.makeText(this, "Play service not found", Toast.LENGTH_SHORT).show();
-            }
-        }
+        mLocationHelper.onActivityResume(this);
     }
 
     @Override
     public void onLocationPermissionSuccess() {
-        Log.d(TAG, "onLocationPermissionSuccess: launching service");
-        startLocationService();
-    }
-
-    private void startLocationService() {
-        ActivityManager.RunningServiceInfo runningService = getRunningServiceInfo(AppLocationService.class
-                , this);
-        if (runningService != null) {
-            stopService(new Intent(this, runningService.getClass()));
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(new Intent(this, AppLocationService.class));
-        } else {
-            startService(new Intent(this, AppLocationService.class));
-        }
-    }
-
-    public static ActivityManager.RunningServiceInfo getRunningServiceInfo(Class serviceClass, Context context) {
-        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return service;
-            }
-        }
-        return null;
+        mLocationHelper.onLocationPermissionSuccess(this);
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-
+    public void onAlarmStateChange(int position, boolean isActive) {
+        mAlarmItems.get(position).setActive(isActive);
+        SharedPreferenceManager.saveAlarmListIntoPreference(this, mAlarmItems);
     }
 }

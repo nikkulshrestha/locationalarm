@@ -9,7 +9,7 @@ public class AppCache {
 
     private static AppCache mCache = new AppCache();
     private UserInfo mUserInfo;
-    private List<LocationModel> mOfflineLocation;
+    private LocationModel mCurrentLocation;
 
     private AppCache() {
 
@@ -25,5 +25,13 @@ public class AppCache {
 
     public UserInfo getUserInfo() {
         return mUserInfo;
+    }
+
+    public LocationModel getCurrentLocation() {
+        return mCurrentLocation;
+    }
+
+    public void setCurrentLocation(LocationModel currentLocation) {
+        this.mCurrentLocation = currentLocation;
     }
 }

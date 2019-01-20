@@ -1,8 +1,6 @@
 package com.nikhil.locationalarm.network;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -17,6 +15,7 @@ import com.nikhil.locationalarm.model.SaveLocationResponseModel;
 import com.nikhil.locationalarm.utils.AppCache;
 import com.nikhil.locationalarm.utils.AppUtility;
 import com.nikhil.locationalarm.utils.Constants;
+import com.nikhil.locationalarm.helper.SharedPreferenceManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,18 +25,19 @@ public class SyncLocationHelper {
     private static final String TAG = SyncLocationHelper.class.getSimpleName();
 
     public void syncLocation(Context context, LocationModel location) {
+        AppCache.getCache().setCurrentLocation(location);
         saveOfflineLocation(context, location);
-        if (AppUtility.isNetworkAvailable(context)) {
-            sendLocationToServer(context, getOfflineLocations(context));
+        if (AppUtility.isNetworkAvailable(context) && AppCache.getCache().getUserInfo() != null) {
+            sendLocationToServer(context, SharedPreferenceManager.getOfflineLocations(context));
         }
     }
 
     private void saveOfflineLocation(Context context, LocationModel location) {
 
-        SaveLocationRequestModel offlineLocations = getOfflineLocations(context);
+        SaveLocationRequestModel offlineLocations = SharedPreferenceManager.getOfflineLocations(context);
         offlineLocations.add(location);
 
-        saveLocationsIntoPreference(context, offlineLocations);
+        SharedPreferenceManager.saveLocationsIntoPreference(context, offlineLocations);
     }
 
     private void sendLocationToServer(Context context, SaveLocationRequestModel offlineLocations) {
@@ -61,32 +61,16 @@ public class SyncLocationHelper {
     }
 
     private void onSaveLocationResponse(Context context, NetworkModel response) {
-        Log.d(TAG, "onSaveLocationResponse: " + new Gson().toJson(response));
-        if (response instanceof SaveLocationResponseModel && ((SaveLocationResponseModel) response).getStatus()
-                .getMessage().equals(Constants.MESSAGE_SUCCESS)) {
-            saveLocationsIntoPreference(context, null);
-        }
-    }
+        Gson gson = new Gson();
+        Log.d(TAG, "onSaveLocationResponse data: " + gson.toJson(response));
 
-    private SaveLocationRequestModel getOfflineLocations(Context context) {
-        SaveLocationRequestModel offlineLocations = new SaveLocationRequestModel();
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        if (preferences.contains(Constants.PREF_OFFLINE_LOCATIONS_KEY)) {
-            String offlineLocationsJson = preferences.getString(Constants.PREF_OFFLINE_LOCATIONS_KEY,
-                    null);
-            offlineLocations = new Gson().fromJson(offlineLocationsJson, SaveLocationRequestModel.class);
+        if (response instanceof RawDataModel) {
+            SaveLocationResponseModel locationResponseModel = gson.fromJson(((RawDataModel) response).getRawContent(),
+                    SaveLocationResponseModel.class);
+            if (locationResponseModel.getStatus().getMessage().equals(Constants.MESSAGE_SUCCESS)) {
+                Log.d(TAG, "onSaveLocationResponse: Clear offline locations");
+                SharedPreferenceManager.saveLocationsIntoPreference(context, null);
+            }
         }
-        return offlineLocations;
-    }
-
-    private void saveLocationsIntoPreference(Context context, SaveLocationRequestModel offlineLocations) {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = preferences.edit();
-        if (offlineLocations == null) {
-            editor.remove(Constants.PREF_OFFLINE_LOCATIONS_KEY);
-        } else {
-            editor.putString(Constants.PREF_OFFLINE_LOCATIONS_KEY, new Gson().toJson(offlineLocations));
-        }
-        editor.commit();
     }
 }
